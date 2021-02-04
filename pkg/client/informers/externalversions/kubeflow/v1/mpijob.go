@@ -1,4 +1,4 @@
-// Copyright 2020 The Kubeflow Authors.
+// Copyright 2021 The Kubeflow Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package v1
 
 import (
+	"context"
 	time "time"
 
 	kubeflowv1 "github.com/kubeflow/mpi-operator/pkg/apis/kubeflow/v1"
@@ -59,13 +60,13 @@ func NewFilteredMPIJobInformer(client versioned.Interface, namespace string, res
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.KubeflowV1().MPIJobs(namespace).List(options)
+				return client.KubeflowV1().MPIJobs(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.KubeflowV1().MPIJobs(namespace).Watch(options)
+				return client.KubeflowV1().MPIJobs(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&kubeflowv1.MPIJob{},

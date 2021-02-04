@@ -52,7 +52,7 @@ func (s *ServerOption) AddFlags(fs *flag.FlagSet) {
 	fs.StringVar(&s.Kubeconfig, "kubeConfig", "",
 		"Path to a kubeConfig. Only required if out-of-cluster.")
 
-	fs.StringVar(&s.KubectlDeliveryImage, "kubectl-delivery-image", "",
+	fs.StringVar(&s.KubectlDeliveryImage, "kubectl-delivery-image", os.Getenv("KUBECTL_DELIVERY_IMAGE"),
 		"The container image used to deliver the kubectl binary.")
 
 	fs.StringVar(&s.Namespace, "namespace", os.Getenv(v1.EnvKubeflowNamespace),
@@ -69,7 +69,7 @@ func (s *ServerOption) AddFlags(fs *flag.FlagSet) {
 
 	fs.StringVar(&s.GangSchedulingName, "gang-scheduling", "", "Set gang scheduler name if enable gang scheduling.")
 
-	fs.StringVar(&s.LockNamespace, "lock-namespace", "mpi-operator", "Set locked namespace name while enabling leader election.")
+	fs.StringVar(&s.LockNamespace, "lock-namespace", os.Getenv(v1.EnvKubeflowNamespace), "Set locked namespace name while enabling leader election.")
 
 	fs.BoolVar(&s.LauncherRunsWorkload, "launcher-runs-workloads", false, "Set launcher run the workload when launcher has GPU")
 

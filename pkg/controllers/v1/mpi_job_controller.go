@@ -16,6 +16,7 @@ package v1
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -502,7 +503,7 @@ func (c *MPIJobController) syncHandler(key string) error {
 			launcher, err := c.getLauncherJob(mpiJob)
 			if err == nil && launcher != nil && isPodFailed(launcher) {
 				// In requeue, should delete launcher pod
-				err = c.kubeClient.CoreV1().Pods(launcher.Namespace).Delete(launcher.Name, &metav1.DeleteOptions{})
+				err = c.kubeClient.CoreV1().Pods(launcher.Namespace).Delete(context.TODO(), launcher.Name, metav1.DeleteOptions{})
 				if err != nil && !errors.IsNotFound(err) {
 					klog.Errorf("Failed to delete pod[%s/%s]: %v", mpiJob.Namespace, name, err)
 					return err
@@ -566,7 +567,7 @@ func (c *MPIJobController) syncHandler(key string) error {
 			return err
 		}
 		if launcher == nil {
-			launcher, err = c.kubeClient.CoreV1().Pods(namespace).Create(c.newLauncher(mpiJob, c.kubectlDeliveryImage, isGPULauncher))
+			launcher, err = c.kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), c.newLauncher(mpiJob, c.kubectlDeliveryImage, isGPULauncher), metav1.CreateOptions{})
 			if err != nil {
 				c.recorder.Eventf(mpiJob, corev1.EventTypeWarning, mpiJobFailedReason, "launcher pod created failed: %v", err)
 				return err
@@ -613,7 +614,7 @@ func (c *MPIJobController) getOrCreatePodGroups(mpiJob *kubeflow.MPIJob, minAvai
 	podgroup, err := c.podgroupsLister.PodGroups(mpiJob.Namespace).Get(mpiJob.Name)
 	// If the PodGroup doesn't exist, we'll create it.
 	if errors.IsNotFound(err) {
-		podgroup, err = c.volcanoClient.SchedulingV1beta1().PodGroups(mpiJob.Namespace).Create(newPodGroup(mpiJob, minAvailableWorkerReplicas))
+		podgroup, err = c.volcanoClient.SchedulingV1beta1().PodGroups(mpiJob.Namespace).Create(context.TODO(), newPodGroup(mpiJob, minAvailableWorkerReplicas), metav1.CreateOptions{})
 	}
 	// If an error occurs during Get/Create, we'll requeue the item so we
 	// can attempt processing again later. This could have been caused by a
@@ -651,7 +652,7 @@ func (c *MPIJobController) deletePodGroups(mpiJob *kubeflow.MPIJob) error {
 	}
 
 	// If the PodGroup exist, we'll delete it.
-	err = c.volcanoClient.SchedulingV1beta1().PodGroups(mpiJob.Namespace).Delete(mpiJob.Name, &metav1.DeleteOptions{})
+	err = c.volcanoClient.SchedulingV1beta1().PodGroups(mpiJob.Namespace).Delete(context.TODO(), mpiJob.Name, metav1.DeleteOptions{})
 	// If an error occurs during Delete, we'll requeue the item so we
 	// can attempt processing again later. This could have been caused by a
 	// temporary network failure, or any other transient reason.
@@ -668,7 +669,7 @@ func (c *MPIJobController) getOrCreateConfigMap(mpiJob *kubeflow.MPIJob, workerR
 	cm, err := c.configMapLister.ConfigMaps(mpiJob.Namespace).Get(mpiJob.Name + configSuffix)
 	// If the ConfigMap doesn't exist, we'll create it.
 	if errors.IsNotFound(err) {
-		cm, err = c.kubeClient.CoreV1().ConfigMaps(mpiJob.Namespace).Create(newConfigMap(mpiJob, workerReplicas, isGPULauncher))
+		cm, err = c.kubeClient.CoreV1().ConfigMaps(mpiJob.Namespace).Create(context.TODO(), newConfigMap(mpiJob, workerReplicas, isGPULauncher), metav1.CreateOptions{})
 	}
 	// If an error occurs during Get/Create, we'll requeue the item so we
 	// can attempt processing again later. This could have been caused by a
@@ -693,7 +694,7 @@ func (c *MPIJobController) getOrCreateLauncherServiceAccount(mpiJob *kubeflow.MP
 	sa, err := c.serviceAccountLister.ServiceAccounts(mpiJob.Namespace).Get(mpiJob.Name + launcherSuffix)
 	// If the ServiceAccount doesn't exist, we'll create it.
 	if errors.IsNotFound(err) {
-		sa, err = c.kubeClient.CoreV1().ServiceAccounts(mpiJob.Namespace).Create(newLauncherServiceAccount(mpiJob))
+		sa, err = c.kubeClient.CoreV1().ServiceAccounts(mpiJob.Namespace).Create(context.TODO(), newLauncherServiceAccount(mpiJob), metav1.CreateOptions{})
 	}
 	// If an error occurs during Get/Create, we'll requeue the item so we
 	// can attempt processing again later. This could have been caused by a
@@ -717,7 +718,7 @@ func (c *MPIJobController) getOrCreateLauncherRole(mpiJob *kubeflow.MPIJob, work
 	role, err := c.roleLister.Roles(mpiJob.Namespace).Get(mpiJob.Name + launcherSuffix)
 	// If the Role doesn't exist, we'll create it.
 	if errors.IsNotFound(err) {
-		role, err = c.kubeClient.RbacV1().Roles(mpiJob.Namespace).Create(newLauncherRole(mpiJob, workerReplicas))
+		role, err = c.kubeClient.RbacV1().Roles(mpiJob.Namespace).Create(context.TODO(), newLauncherRole(mpiJob, workerReplicas), metav1.CreateOptions{})
 	}
 	// If an error occurs during Get/Create, we'll requeue the item so we
 	// can attempt processing again later. This could have been caused by a
@@ -742,7 +743,7 @@ func (c *MPIJobController) getLauncherRoleBinding(mpiJob *kubeflow.MPIJob) (*rba
 	rb, err := c.roleBindingLister.RoleBindings(mpiJob.Namespace).Get(mpiJob.Name + launcherSuffix)
 	// If the RoleBinding doesn't exist, we'll create it.
 	if errors.IsNotFound(err) {
-		rb, err = c.kubeClient.RbacV1().RoleBindings(mpiJob.Namespace).Create(newLauncherRoleBinding(mpiJob))
+		rb, err = c.kubeClient.RbacV1().RoleBindings(mpiJob.Namespace).Create(context.TODO(), newLauncherRoleBinding(mpiJob), metav1.CreateOptions{})
 	}
 	// If an error occurs during Get/Create, we'll requeue the item so we
 	// can attempt processing again later. This could have been caused by a
@@ -789,7 +790,7 @@ func (c *MPIJobController) getOrCreateWorker(mpiJob *kubeflow.MPIJob) ([]*corev1
 				err = fmt.Errorf(msg)
 				return nil, err
 			}
-			pod, err = c.kubeClient.CoreV1().Pods(mpiJob.Namespace).Create(worker)
+			pod, err = c.kubeClient.CoreV1().Pods(mpiJob.Namespace).Create(context.TODO(), worker, metav1.CreateOptions{})
 		}
 		// If an error occurs during Get/Create, we'll requeue the item so we
 		// can attempt processing again later. This could have been caused by a
@@ -846,7 +847,7 @@ func (c *MPIJobController) deleteWorkerPods(mpiJob *kubeflow.MPIJob) error {
 			// Keep the worker pod
 			continue
 		}
-		err = c.kubeClient.CoreV1().Pods(mpiJob.Namespace).Delete(name, &metav1.DeleteOptions{})
+		err = c.kubeClient.CoreV1().Pods(mpiJob.Namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {
 			klog.Errorf("Failed to delete pod[%s/%s]: %v", mpiJob.Namespace, name, err)
 			return err
@@ -1026,7 +1027,7 @@ func (c *MPIJobController) handleObject(obj interface{}) {
 
 // doUpdateJobStatus updates the status of the given MPIJob by call apiServer.
 func (c *MPIJobController) doUpdateJobStatus(mpiJob *kubeflow.MPIJob) error {
-	_, err := c.kubeflowClient.KubeflowV1().MPIJobs(mpiJob.Namespace).UpdateStatus(mpiJob)
+	_, err := c.kubeflowClient.KubeflowV1().MPIJobs(mpiJob.Namespace).UpdateStatus(context.TODO(), mpiJob, metav1.UpdateOptions{})
 	return err
 }
 
